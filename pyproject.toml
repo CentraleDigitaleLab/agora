@@ -2,7 +2,7 @@
 name = "agora"
 version = "0.3"
 requires-python = ">=3.10"
-description = "RAG ingestion CLI for CanaR"
+description = "RAG ingestion CLI for CanaR "
 readme = "README.md"
 
 dependencies = [
