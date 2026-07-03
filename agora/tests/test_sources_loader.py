@@ -336,3 +336,200 @@ def test_markdown_source_accepts_classic_parent_storage_config(tmp_path: Path):
     assert s.parent_target_tokens == 900
     assert s.parent_overlap_tokens == 80
     assert s.parent_max_tokens == 1200
+
+
+def test_llm_summary_retrieval_defaults(tmp_path: Path):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    cfg = tmp_path / "sources.yaml"
+    _write_yaml(
+        cfg,
+        f"""
+        version: 1
+        sources:
+          s:
+            kind: markdown_repo
+            repo_path: "{repo}"
+            base_url: "https://docs.example.org"
+        """,
+    )
+
+    loaded = load_sources_config(cfg)
+
+    assert loaded.llm_summary_retrieval is False
+    assert loaded.summary_model == "gemma"
+    assert loaded.summary_granularity == "chapter"
+    assert loaded.max_summary_length == 5
+    assert loaded.index_raw_chunks is True
+
+
+def test_llm_summary_retrieval_enabled_config_ok(tmp_path: Path):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    cfg = tmp_path / "sources.yaml"
+    _write_yaml(
+        cfg,
+        f"""
+        version: 1
+        llm_summary_retrieval: true
+        summary_model: gemma
+        summary_granularity: chapter
+        max_summary_length: 5
+        index_raw_chunks: true
+        sources:
+          s:
+            kind: markdown_repo
+            repo_path: "{repo}"
+            base_url: "https://docs.example.org"
+        """,
+    )
+
+    loaded = load_sources_config(cfg)
+
+    assert loaded.llm_summary_retrieval is True
+    assert loaded.summary_model == "gemma"
+    assert loaded.summary_granularity == "chapter"
+    assert loaded.max_summary_length == 5
+    assert loaded.index_raw_chunks is True
+
+
+@pytest.mark.parametrize("value", ['"true"', '"false"', "1", "0", '"yes"'])
+def test_llm_summary_retrieval_must_be_strict_boolean(tmp_path: Path, value: str):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    cfg = tmp_path / "sources.yaml"
+    _write_yaml(
+        cfg,
+        f"""
+        version: 1
+        llm_summary_retrieval: {value}
+        sources:
+          s:
+            kind: markdown_repo
+            repo_path: "{repo}"
+            base_url: "https://docs.example.org"
+        """,
+    )
+
+    with pytest.raises(ValidationError, match="llm_summary_retrieval must be a boolean"):
+        load_sources_config(cfg)
+
+
+@pytest.mark.parametrize("value", ["llama", '""'])
+def test_summary_model_must_be_gemma_when_enabled(tmp_path: Path, value: str):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    cfg = tmp_path / "sources.yaml"
+    _write_yaml(
+        cfg,
+        f"""
+        version: 1
+        llm_summary_retrieval: true
+        summary_model: {value}
+        sources:
+          s:
+            kind: markdown_repo
+            repo_path: "{repo}"
+            base_url: "https://docs.example.org"
+        """,
+    )
+
+    with pytest.raises(ValidationError, match="summary_model must be 'gemma'"):
+        load_sources_config(cfg)
+
+
+@pytest.mark.parametrize("value", ["chunk_group", "document", "section", "unknown"])
+def test_summary_granularity_must_be_chapter_when_enabled(tmp_path: Path, value: str):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    cfg = tmp_path / "sources.yaml"
+    _write_yaml(
+        cfg,
+        f"""
+        version: 1
+        llm_summary_retrieval: true
+        summary_granularity: {value}
+        sources:
+          s:
+            kind: markdown_repo
+            repo_path: "{repo}"
+            base_url: "https://docs.example.org"
+        """,
+    )
+
+    with pytest.raises(ValidationError, match="summary_granularity must be 'chapter'"):
+        load_sources_config(cfg)
+
+
+@pytest.mark.parametrize("value", ["0", "-1", '"5"', "1.5", "true"])
+def test_max_summary_length_must_be_positive_integer_when_enabled(
+    tmp_path: Path,
+    value: str,
+):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    cfg = tmp_path / "sources.yaml"
+    _write_yaml(
+        cfg,
+        f"""
+        version: 1
+        llm_summary_retrieval: true
+        max_summary_length: {value}
+        sources:
+          s:
+            kind: markdown_repo
+            repo_path: "{repo}"
+            base_url: "https://docs.example.org"
+        """,
+    )
+
+    with pytest.raises(
+        ValidationError,
+        match="max_summary_length must be a positive integer",
+    ):
+        load_sources_config(cfg)
+
+
+@pytest.mark.parametrize("value", ['"true"', "1"])
+def test_index_raw_chunks_must_be_strict_boolean_when_enabled(tmp_path: Path, value: str):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    cfg = tmp_path / "sources.yaml"
+    _write_yaml(
+        cfg,
+        f"""
+        version: 1
+        llm_summary_retrieval: true
+        index_raw_chunks: {value}
+        sources:
+          s:
+            kind: markdown_repo
+            repo_path: "{repo}"
+            base_url: "https://docs.example.org"
+        """,
+    )
+
+    with pytest.raises(ValidationError, match="index_raw_chunks must be a boolean"):
+        load_sources_config(cfg)
+
+
+def test_index_raw_chunks_false_is_not_supported_when_enabled(tmp_path: Path):
+    repo = tmp_path / "r"
+    repo.mkdir()
+    cfg = tmp_path / "sources.yaml"
+    _write_yaml(
+        cfg,
+        f"""
+        version: 1
+        llm_summary_retrieval: true
+        index_raw_chunks: false
+        sources:
+          s:
+            kind: markdown_repo
+            repo_path: "{repo}"
+            base_url: "https://docs.example.org"
+        """,
+    )
+
+    with pytest.raises(ValidationError, match="index_raw_chunks=False is not supported"):
+        load_sources_config(cfg)

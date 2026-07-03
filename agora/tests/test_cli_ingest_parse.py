@@ -12,6 +12,11 @@ from agora.cli.ingest import (
     _validate_parent_storage_config,
     build_parser,
 )
+from agora.ingestion_strategies import (
+    DefaultIngestionStrategy,
+    LLMSummaryRetrievalIngestionStrategy,
+    select_ingestion_strategy,
+)
 
 
 def test_cli_parse_minimum_ok():
@@ -139,3 +144,31 @@ def test_drop_parent_collection_if_requested_skips_without_drop_flag():
     _drop_parent_collection_if_requested(client, "kb", drop=False)
 
     assert client.deleted == []
+
+
+def test_selects_default_ingestion_strategy_when_summary_retrieval_disabled():
+    cfg = SimpleNamespace(llm_summary_retrieval=False)
+
+    strategy = select_ingestion_strategy(cfg)
+
+    assert isinstance(strategy, DefaultIngestionStrategy)
+    assert strategy.uses_default_pipeline is True
+
+
+def test_selects_llm_summary_retrieval_strategy_when_enabled():
+    cfg = SimpleNamespace(llm_summary_retrieval=True)
+
+    strategy = select_ingestion_strategy(cfg)
+
+    assert isinstance(strategy, LLMSummaryRetrievalIngestionStrategy)
+    assert strategy.uses_default_pipeline is False
+
+
+def test_llm_summary_retrieval_strategy_stub_fails_clearly():
+    strategy = LLMSummaryRetrievalIngestionStrategy()
+
+    with pytest.raises(
+        NotImplementedError,
+        match="summary generation is not implemented yet",
+    ):
+        strategy.run()
