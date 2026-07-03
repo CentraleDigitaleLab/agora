@@ -10,6 +10,7 @@ from tqdm import tqdm
 
 from agora.chunking import Chunk, MarkdownChunker
 from agora.embeddings.named import ConfiguredNamedVectorEncoder
+from agora.ingestion_strategies import select_ingestion_strategy
 from agora.sources.loader import load_sources_config, resolve_sources_config
 from agora.sources.registry import build_source
 from agora.util import count_tokens, make_chunk_id, make_parent_chunk_id, slugify
@@ -239,6 +240,12 @@ def main(argv: list[str] | None = None) -> None:
     cfg_path = Path(args.sources_config_path or "sources.yaml").resolve()
     _ensure_config_exists(cfg_path)
     ingestion_config = load_sources_config(cfg_path)
+    strategy = select_ingestion_strategy(ingestion_config)
+    if not strategy.uses_default_pipeline:
+        try:
+            strategy.run()
+        except NotImplementedError as e:
+            raise SystemExit(f"[!] {e}") from e
     resolved = resolve_sources_config(ingestion_config)
 
     # 2) Choose exactly one source

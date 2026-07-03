@@ -6,7 +6,7 @@ from typing import Annotated, Any
 import yaml
 from pydantic import BaseModel, Field
 
-from .models.base import SourceDefaults, VectorIndexConfig
+from .models.base import IngestionStrategyConfig, SourceDefaults, VectorIndexConfig
 from .models.base import SourcesConfig as _RawSourcesConfig
 from .models.markdown_repo import MarkdownRepoConfig
 
@@ -16,7 +16,7 @@ SourceConfigUnion = Annotated[
 ]
 
 
-class SourcesConfig(BaseModel):
+class SourcesConfig(IngestionStrategyConfig):
     version: int = 1
     vector_index: VectorIndexConfig = Field(default_factory=VectorIndexConfig)
     defaults: SourceDefaults
@@ -49,6 +49,11 @@ def load_sources_config(path: Path) -> SourcesConfig:
     typed = SourcesConfig.model_validate(
         {
             "version": raw.version,
+            "llm_summary_retrieval": raw.llm_summary_retrieval,
+            "summary_model": raw.summary_model,
+            "summary_granularity": raw.summary_granularity,
+            "max_summary_length": raw.max_summary_length,
+            "index_raw_chunks": raw.index_raw_chunks,
             "vector_index": raw.vector_index.model_dump(),
             "defaults": raw.defaults.model_dump(),
             "sources": norm_sources,
