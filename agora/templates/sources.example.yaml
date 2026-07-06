@@ -1,5 +1,13 @@
 version: 1
 
+# LLM Summary Retrieval strategy selector. Summary generation is still a stub
+# until stories #42 and #43 land.
+llm_summary_retrieval: false
+summary_model: "gemma"
+summary_granularity: "chapter"
+max_summary_length: 5
+index_raw_chunks: true
+
 defaults:
   include_globs: ["**/*.md", "**/*.qmd", "**/*.Rmd"]
   exclude_dirs: [".git", "_book", "docs", ".quarto", "renv", ".github", "node_modules", "build", "dist", "site"]
