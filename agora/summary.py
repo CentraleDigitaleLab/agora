@@ -87,7 +87,7 @@ def build_summary_prompt(text: str, max_sentences: int) -> list[dict[str, str]]:
                 "Write both the summary and keywords in the same language as the source text.\n"
                 "Preserve important concepts, entities, technical terms, and relevant "
                 "expressions.\n"
-                "Avoid vague or generic summaries.\n"
+                "You can be as general as needed.\n"
                 f"Limit the summary to at most {max_sentences} sentences.\n"
                 "Extract correlated keywords based on the context and meaning of the text, "
                 "not only literal word extraction.\n"
